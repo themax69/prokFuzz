@@ -8,62 +8,54 @@ import sys
 import random
 
 class BurpExtender(IBurpExtender, IIntruderPayloadGeneratorFactory):
-  def registerExtenderCallbacks(self, callbacks):
-    self._callbacks = callbacks
-    self._helpers = callbacks.getHelpers()
-    callbacks.registerIntruderPayloadGeneratorFactory(self)
-    return
+    def registerExtenderCallbacks(self, callbacks):
+        self._callbacks = callbacks
+        self._helpers = callbacks.getHelpers()
+        callbacks.registerIntruderPayloadGeneratorFactory(self)
+        return
 
-def getGeneratorName(name):
-  return "Payload generator"
+    def getGeneratorName(self, name):
+        return "Payload generator"
 
-def createNewInstance(self, action):
-  return ProkFuzz(self, action)
+    def createNewInstance(self, action):
+        return ProKFuzz(self, action)
 
 class ProKFuzz(IIntruderPayloadGenerator):
-  def __init__(self, extender, action):
-    self._extender = extender
-    self._helpers = extender._helpers
-    self._action = action
-    self.min_payloads = 1
-    self.max_payloads = 10
-    self.num_iterators = 0
+    def __init__(self, extender, action):
+        self._extender = extender
+        self._helpers = extender._helpers
+        self._action = action
+        self.min_payloads = 1
+        self.max_payloads = 10
+        self.num_iterators = 0
+        self.sum_iterations = 0
 
-    return
-
-
-  def hasMorePayloads(self):
-    if self.num_iterators == self.max_payloads:
-      return false
-    else:
-      return true
+    def hasMorePayloads(self):
+        return self.num_iterators < self.max_payloads
 
     def getNextPayload(self, current_payload):
-      payload ="".join(chr(x) for x in current_payload)
-      payload = self.mutate_payload(payload)
-      self.sum_iterations += 1
-      return payload
-
+        payload = "".join(chr(x) for x in current_payload)
+        payload = self.mutate_payload(payload)
+        self.sum_iterations += 1
+        return payload
 
     def reset(self):
-      self.num_iterators =0
-      return
+        self.num_iterators = 0
+        return
 
     def mutate_payload(self, original_payload):
-      picker = random.randint(1,5)
-      offset = random.randint(0,len(original_payload)-1)
-      payload =  original_payload[:offset]
-      if picker == 1:
-        payload += "'"
-        if picker ==2:
-          payload += "<script>alert('Jamming. %s');</script>"
-          if picker == 3:
-            chunk_length = random.randint(len(payload[offset:]),len(payload)-1)
-            repeater = random.randint(1,22)
+        picker = random.randint(1, 5)
+        offset = random.randint(0, len(original_payload) - 1)
+        payload = original_payload[:offset]
 
+        if picker == 1:
+            payload += "'"
+        elif picker == 2:
+            payload += "<script>alert('Jamming. %s');</script>"
+        elif picker == 3:
+            chunk_length = random.randint(len(payload[offset:]), len(original_payload) - 1)
+            repeater = random.randint(1, 22)
             for i in range(repeater):
-              payload += original_payload[offset:offset+chunk_length]
-              payload += original_payload[offset:]
-              return payload
-	
-	
+                payload += original_payload[offset:offset + chunk_length]
+                payload += original_payload[offset:]
+        return payload
